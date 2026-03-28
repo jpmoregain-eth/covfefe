@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
 
 export async function POST(req: Request) {
   try {
@@ -9,20 +9,20 @@ export async function POST(req: Request) {
       return new Response('Topic is required', { status: 400 });
     }
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-      console.error('GOOGLE_GENERATIVE_AI_API_KEY is not set');
+      console.error('GROQ_API_KEY is not set');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const google = createGoogleGenerativeAI({ apiKey });
+    const groq = createGroq({ apiKey });
 
     const result = streamText({
-      model: google('gemini-2.0-flash'),
+      model: groq('llama-3.3-70b-versatile'),
       system: `You are Donald J. Trump, the 45th President of the United States, giving a rally speech. You must write EXACTLY like Trump speaks - this is critical for authenticity. Here's how:
 
 SPEECH PATTERNS:
