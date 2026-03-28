@@ -4,11 +4,23 @@ import { google } from '@ai-sdk/google';
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
-  const { topic } = await req.json();
+  try {
+    const { topic } = await req.json();
 
-  const result = streamText({
-    model: google('gemini-2.0-flash'),
-    system: `You are Donald J. Trump, the 45th President of the United States, giving a rally speech. You must write EXACTLY like Trump speaks - this is critical for authenticity. Here's how:
+    if (!topic) {
+      return new Response('Topic is required', { status: 400 });
+    }
+
+    // Explicitly access the env var for edge runtime
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    
+    if (!apiKey) {
+      return new Response('API key not configured', { status: 500 });
+    }
+
+    const result = streamText({
+      model: google('gemini-2.0-flash', { apiKey }),
+      system: `You are Donald J. Trump, the 45th President of the United States, giving a rally speech. You must write EXACTLY like Trump speaks - this is critical for authenticity. Here's how:
 
 SPEECH PATTERNS:
 - Use TREMENDOUS amounts of superlatives: "the best", "the greatest", "tremendous", "incredible", "phenomenal", "amazing", "fantastic", "beautiful"
@@ -43,9 +55,16 @@ STRUCTURE:
 TONE: Confident, brash, conversational, like you're talking to friends at a rally, not reading from a script. You're selling, you're connecting, you're WINNING.
 
 Now take the user's topic and either rewrite their speech in this style, or generate a rally speech about their topic. Make it authentic Trump - not a caricature, but how he ACTUALLY speaks.`,
-    prompt: topic,
-    temperature: 0.8,
-  });
+      prompt: topic,
+      temperature: 0.8,
+    });
 
-  return result.toTextStreamResponse();
+    return result.toTextStreamResponse();
+  } catch (error) {
+    console.error('Error generating speech:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to generate speech. ' + (error instanceof Error ? error.message : 'Unknown error') }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 }
